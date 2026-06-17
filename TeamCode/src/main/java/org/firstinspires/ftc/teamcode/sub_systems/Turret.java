@@ -17,6 +17,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 @Configurable
 public class Turret {
     private double error = 0, power = 0, manualPower = 0;
+    private final double DISABLE_ANGLE = Math.toRadians(135);
     public static double rpt = (2*Math.PI)/1350;
 
     public final DcMotorEx m;
@@ -166,5 +167,20 @@ public class Turret {
 
     public void setPowerZero() {
         m.setPower(0);
+    }
+
+    public double inAllowedArcWithHysteresis(double desired, double yawOffset) {
+        double a = Math.abs(desired);
+
+        if (a > DISABLE_ANGLE) {
+            return clamp(desired,-DISABLE_ANGLE-Math.toRadians(yawOffset),DISABLE_ANGLE-Math.toRadians(yawOffset));
+        }
+        return desired;
+    }
+
+    public static double clamp(double value, double min, double max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
     }
 }

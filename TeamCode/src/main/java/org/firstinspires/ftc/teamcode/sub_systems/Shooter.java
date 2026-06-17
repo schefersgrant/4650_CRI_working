@@ -19,6 +19,7 @@ public class Shooter {
     ElapsedTime gateTimer = new ElapsedTime(), shootTimer = new ElapsedTime();
     Intake intake;
     Sensors sensors;
+    private boolean gate_open;
 
 
     public Shooter(HardwareMap hardwareMap){
@@ -37,11 +38,11 @@ public class Shooter {
         counter.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(counter_p, 0, 0, counter_f));
     }
 
-    private void shootStart(){
+    public void shootStart(){
         main.setVelocity(1040);
         counter.setVelocity(1540);
     }
-    private void shootStop(){
+    public void shootStop(){
         main.setVelocity(0);
         counter.setVelocity(0);
     }
@@ -73,7 +74,7 @@ public class Shooter {
         main.setVelocity(main_v);
         counter.setVelocity(counter_v);
     }
-    private double distance_calc(Pose pose, boolean redside){
+    public double distance_calc(Pose pose, boolean redside){
         x = pose.getX();
         y = pose.getY();
 
@@ -95,7 +96,7 @@ public class Shooter {
 
     public void shootSequence(){
         gateTimer.reset();
-        gate.setPosition(GATE_OPEN);
+        gate_open();
         sensors.gateLight();
         if(gateTimer.seconds() > 0.5){
             shootTimer.reset();
@@ -104,7 +105,7 @@ public class Shooter {
             }
             else{
                 intake.off();
-                gate.setPosition(GATE_CLOSE);
+                gate_close();
                 sensors.gateLight();
             }
         }
@@ -118,5 +119,14 @@ public class Shooter {
     }
     public double getGatePose(){
         return gate.getPosition();
+    }
+
+    public void gate_open(){
+        gate.setPosition(GATE_OPEN);
+        sensors.gateLight();
+    }
+    public void gate_close(){
+        gate.setPosition(GATE_CLOSE);
+        sensors.gateLight();
     }
 }
