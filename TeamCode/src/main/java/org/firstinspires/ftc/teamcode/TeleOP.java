@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
-
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
@@ -16,19 +14,13 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.robotcore.hardware.PIDFCoefficients;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.sub_systems.Drivetrain;
 import org.firstinspires.ftc.teamcode.sub_systems.Intake;
@@ -36,13 +28,6 @@ import org.firstinspires.ftc.teamcode.sub_systems.Sensors;
 import org.firstinspires.ftc.teamcode.sub_systems.Shooter;
 import org.firstinspires.ftc.teamcode.sub_systems.Turret;
 import com.seattlesolvers.solverslib.util.TelemetryData;
-
-
-import org.firstinspires.ftc.teamcode.Prism.Color;
-import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
-import org.firstinspires.ftc.teamcode.Prism.PrismAnimations;
-import com.qualcomm.robotcore.hardware.AnalogInput;
-
 import java.util.List;
 
 @TeleOp(name = "TeleOP", group = "Robot")
@@ -59,7 +44,7 @@ public class TeleOP extends OpMode{
     private Drivetrain drivetrain;
     TelemetryData telemetryData;
     private TelemetryManager panelsTelemetry;
-    private boolean redSide, LLPoseSet = false, LLPoseFirstSet = false, manual;
+    private boolean redSide, LLPoseSet = false, LLPoseFirstSet = false, manual, gate_open = false;
     private double v_MAIN, v_COUNTER, angleToTarget = 0, distance, yawOffset;
     ElapsedTime LLPoseTimer = new ElapsedTime(), YawOffsetDelay = new ElapsedTime();
 
@@ -82,11 +67,11 @@ public class TeleOP extends OpMode{
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         //Subsystem setup
-        shooter = new Shooter(hardwareMap);
         turret = new Turret(hardwareMap);
         sensors = new Sensors(hardwareMap);
         intake = new Intake(hardwareMap);
         drivetrain = new Drivetrain(hardwareMap);
+        shooter = new Shooter(hardwareMap, sensors, intake);
 
         //follower setup
         follower = Constants.createFollower(hardwareMap);
@@ -215,9 +200,19 @@ public class TeleOP extends OpMode{
         else if(gamepad1.right_trigger > 0.1){
             intake.outtake();
         }
+        else{
+            intake.off();
+        }
 
         if(gamepad1.b){
-            shooter.shootSequence();
+            if(gate_open) {
+                shooter.gate_close();
+                gate_open = false;
+            }
+            else{
+                shooter.gate_open();
+                gate_open = true;
+            }
         }
 
         if (gamepad2.dpad_right && YawOffsetDelay.seconds() > 0.2) {

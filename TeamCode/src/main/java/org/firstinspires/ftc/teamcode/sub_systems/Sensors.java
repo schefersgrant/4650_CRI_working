@@ -45,12 +45,7 @@ public class Sensors {
         }
     }
 
-    public void gateLight(){
-        if(shooter.getGatePose() == 1){
-            gate_light.setPosition(0.44);
-        }
-        else if(shooter.getGatePose() == 0){
-            gate_light.setPosition(0.33);
-        }
+    public void set_light(double val){
+        gate_light.setPosition(val);
     }
 }

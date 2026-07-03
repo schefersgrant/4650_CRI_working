@@ -19,13 +19,16 @@ public class Shooter {
     ElapsedTime gateTimer = new ElapsedTime(), shootTimer = new ElapsedTime();
     Intake intake;
     Sensors sensors;
-    private boolean gate_open;
 
 
-    public Shooter(HardwareMap hardwareMap){
+
+
+    public Shooter(HardwareMap hardwareMap, Sensors sensors, Intake intake){
         main = hardwareMap.get(DcMotorEx.class, "e0");
         counter = hardwareMap.get(DcMotorEx.class, "e1");
         gate = hardwareMap.get(Servo.class, "es5");
+        this.sensors =  sensors;
+        this.intake = intake;
 
         main.setDirection(DcMotorEx.Direction.FORWARD);
         main.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -97,16 +100,14 @@ public class Shooter {
     public void shootSequence(){
         gateTimer.reset();
         gate_open();
-        sensors.gateLight();
         if(gateTimer.seconds() > 0.5){
             shootTimer.reset();
-            if(shootTimer.seconds() < 1.25 || sensors.getVoltage() > 1){ //put in or/and for sensors once work reliable
+            if(shootTimer.seconds() < 1.25){ //put in or/and for sensors once work reliable
                 intake.shoot();
             }
             else{
                 intake.off();
                 gate_close();
-                sensors.gateLight();
             }
         }
     }
@@ -123,10 +124,19 @@ public class Shooter {
 
     public void gate_open(){
         gate.setPosition(GATE_OPEN);
-        sensors.gateLight();
+        gateLight();
     }
     public void gate_close(){
         gate.setPosition(GATE_CLOSE);
-        sensors.gateLight();
+        gateLight();
+    }
+
+    public void gateLight(){
+        if(getGatePose() == 1){
+            sensors.set_light(0.44);
+        }
+        else if(getGatePose() == 0){
+            sensors.set_light(0.33);
+        }
     }
 }
