@@ -15,6 +15,7 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -28,6 +29,7 @@ import org.firstinspires.ftc.teamcode.sub_systems.Sensors;
 import org.firstinspires.ftc.teamcode.sub_systems.Shooter;
 import org.firstinspires.ftc.teamcode.sub_systems.Turret;
 import com.seattlesolvers.solverslib.util.TelemetryData;
+import org.firstinspires.ftc.teamcode.util.NetTelemetry;
 import java.util.List;
 
 @TeleOp(name = "TeleOP", group = "Robot")
@@ -44,7 +46,8 @@ public class TeleOP extends OpMode{
     private Drivetrain drivetrain;
     TelemetryData telemetryData;
     private TelemetryManager panelsTelemetry;
-    private boolean redSide, LLPoseSet = false, LLPoseFirstSet = false, manual, gate_open = false;
+    NetTelemetry net;
+    private boolean redSide, LLPoseSet = false, LLPoseFirstSet = false, manual;
     private double v_MAIN, v_COUNTER, angleToTarget = 0, distance, yawOffset;
     ElapsedTime LLPoseTimer = new ElapsedTime(), YawOffsetDelay = new ElapsedTime();
 
@@ -56,8 +59,8 @@ public class TeleOP extends OpMode{
 
         //IMU setup
         RevHubOrientationOnRobot RevOrientation = new RevHubOrientationOnRobot(
-            RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
-            RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD
+            RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+            RevHubOrientationOnRobot.UsbFacingDirection.UP
         );
         imu = hardwareMap.get(IMU.class, "imu");
         imu.initialize(new IMU.Parameters(RevOrientation));
@@ -65,14 +68,14 @@ public class TeleOP extends OpMode{
         //Telemetry setup
         telemetryData = new TelemetryData(telemetry);
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        net = NetTelemetry.init(telemetry).logToFile("TeleOP");
 
         //Subsystem setup
         turret = new Turret(hardwareMap);
-        sensors = new Sensors(hardwareMap);
+        //sensors = new Sensors(hardwareMap);
         intake = new Intake(hardwareMap);
         drivetrain = new Drivetrain(hardwareMap);
-        shooter = new Shooter(hardwareMap, sensors, intake);
-
+        shooter = new Shooter(hardwareMap, intake);
         //follower setup
         follower = Constants.createFollower(hardwareMap);
         controller = new PIDFController(follower.constants.coefficientsHeadingPIDF);
@@ -106,13 +109,15 @@ public class TeleOP extends OpMode{
     @Override
     public void loop(){
         //Display board
-        sensors.artBoard(sensors.getVoltage());
-        telemetry.addData("Voltage: ", sensors.getVoltage());
+        //sensors.artBoard(sensors.getVoltage());
+        //telemetry.addData("Voltage: ", sensors.getVoltage());
+        net.addData("Side", "RED");        // DS screen + laptop
+        net.logGamepads(gamepad1, gamepad2);
 
         //Velocity calculations
-        v_MAIN = shooter.velocity_calc_MAIN(follower.getPose(), redSide);
-        v_COUNTER = shooter.velocity_calc_COUNTER(follower.getPose(), redSide);
-        shooter.set_velocities(v_MAIN, v_COUNTER);
+        //v_MAIN = shooter.velocity_calc_MAIN(follower.getPose(), redSide);
+        //v_COUNTER = shooter.velocity_calc_COUNTER(follower.getPose(), redSide);
+        //shooter.set_velocities(v_MAIN, v_COUNTER);
 
         //Field centric
         double rotCmd =gamepad1.right_stick_x;
@@ -137,7 +142,6 @@ public class TeleOP extends OpMode{
 
             follower.setTeleOpDrive(gamepad1.left_stick_y, gamepad1.left_stick_x, -rotCmd, false, Math.toRadians(90));
         }
-        Constants.driveConstants.useBrakeModeInTeleOp(true);
 
         follower.update();
 
@@ -204,15 +208,16 @@ public class TeleOP extends OpMode{
             intake.off();
         }
 
-        if(gamepad1.b){
-            if(gate_open) {
-                shooter.gate_close();
-                gate_open = false;
-            }
-            else{
-                shooter.gate_open();
-                gate_open = true;
-            }
+        if(gamepad1.bWasPressed()){
+            //shooter.startShootSequence();
+
+        }
+        //shooter.updateShootSequence();
+        if(gamepad1.dpad_up) {
+            shooter.gate_open();
+        }
+        if(gamepad1.dpad_down){
+            shooter.gate_close();
         }
 
         if (gamepad2.dpad_right && YawOffsetDelay.seconds() > 0.2) {
@@ -225,7 +230,7 @@ public class TeleOP extends OpMode{
         }
 
         //TURRET
-        turret.setYaw(turret.inAllowedArcWithHysteresis(drivetrain.angle_Calc(follower.getPose(), redSide) + Math.toRadians(yawOffset), yawOffset));
+        turret.setYaw(-turret.inAllowedArcWithHysteresis(drivetrain.angle_Calc(follower.getPose(), redSide) + Math.toRadians(yawOffset), yawOffset));
         turret.periodic();
 
         if(gamepad2.a){
@@ -251,10 +256,10 @@ public class TeleOP extends OpMode{
             yawOffset = 0;
         }
 
-
+        net.update();
     }
     @Override
     public void stop(){
-
+        net.close();
     }
 }

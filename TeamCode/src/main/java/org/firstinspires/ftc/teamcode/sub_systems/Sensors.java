@@ -22,11 +22,8 @@ public class Sensors {
         gate_light = hardwareMap.get(Servo.class, "es2");
     }
 
-    private double voltage_calc(){
-        v_total = sensor1.getVoltage() + sensor2.getVoltage() + sensor3.getVoltage() + sensor4.getVoltage();
-        return v_total;
-    }
     public double getVoltage(){
+        v_total = sensor1.getVoltage() + sensor2.getVoltage() + sensor3.getVoltage() + sensor4.getVoltage();
         return v_total;
     }
 

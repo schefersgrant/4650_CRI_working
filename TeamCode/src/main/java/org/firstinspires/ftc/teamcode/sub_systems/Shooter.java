@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.sub_systems;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
@@ -10,46 +11,53 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 public class Shooter {
 
-    public static double main_p = 300, main_f = 5.2, counter_p = 125, counter_f = 6;
+    public double p = 140.5, f = 29.21;
+    PIDFCoefficients coefficients = new PIDFCoefficients(p, 0, 0, f);
     //public static double main_p_far = 300, main_f_far = 5.2, counter_p_far = 125, counter_f_far = 6;
-    public final DcMotorEx main, counter;
-    public final Servo gate;
-    public static double GATE_OPEN = 0, GATE_CLOSE = 1.0;
-    public static double velocity, V_counter, distance, x, y, target_x, target_y, distance_x, distance_y, distanceIN;
+    public final DcMotorEx main_left, main_right;
+    public final Servo gate, hood;
+    public double GATE_OPEN = .68, GATE_CLOSE = .63;
+    public double velocity, distance, x, y, target_x, target_y, distance_x, distance_y, distanceIN;
+    public enum ShootState {IDLE, GATE_OPENING, FEEDING}
+    public ShootState shootState;
     ElapsedTime gateTimer = new ElapsedTime(), shootTimer = new ElapsedTime();
     Intake intake;
-    Sensors sensors;
+    //Sensors sensors;
 
 
 
 
-    public Shooter(HardwareMap hardwareMap, Sensors sensors, Intake intake){
-        main = hardwareMap.get(DcMotorEx.class, "e0");
-        counter = hardwareMap.get(DcMotorEx.class, "e1");
-        gate = hardwareMap.get(Servo.class, "es5");
-        this.sensors =  sensors;
+
+    public Shooter(HardwareMap hardwareMap, Intake intake){
+        main_left = hardwareMap.get(DcMotorEx.class, "e0");
+        main_right = hardwareMap.get(DcMotorEx.class, "e1");
+        gate = hardwareMap.get(Servo.class, "cs0");
+        hood = hardwareMap.get(Servo.class, "");
+
+        //this.sensors =  sensors;
         this.intake = intake;
 
-        main.setDirection(DcMotorEx.Direction.FORWARD);
-        main.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        main.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        main.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(main_p, 0, 0, main_f));
+        main_left.setDirection(DcMotorEx.Direction.REVERSE);
+        main_left.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        main_left.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        main_left.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, coefficients);
 
-        counter.setDirection(DcMotorEx.Direction.FORWARD);
-        counter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        counter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        counter.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(counter_p, 0, 0, counter_f));
+        main_right.setDirection(DcMotorEx.Direction.FORWARD);
+        main_right.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        main_right.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        main_right.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, coefficients);
     }
 
     public void shootStart(){
-        main.setVelocity(1040);
-        counter.setVelocity(1540);
+        main_left.setVelocity(1040);
+        main_right.setVelocity(1040);
     }
     public void shootStop(){
-        main.setVelocity(0);
-        counter.setVelocity(0);
+        main_left.setVelocity(0);
+        main_right.setVelocity(0);
     }
 
+    //will need change
     public double velocity_calc_MAIN(Pose pose, boolean redside){
         if(distance_calc(pose, redside) > 310){
             velocity = 1470;
@@ -61,21 +69,9 @@ public class Shooter {
         return velocity;
     }
 
-    public double velocity_calc_COUNTER(Pose pose, boolean redside){
-        if(distance_calc(pose, redside) > 230){
-            V_counter = 1710;
-        }
-        else if(distance_calc(pose, redside) > 185) {
-            V_counter = 1620;
-        }
-        else{
-            V_counter = 1540;
-        }
-        return V_counter;
-    }
-    public void set_velocities(double main_v, double counter_v){
-        main.setVelocity(main_v);
-        counter.setVelocity(counter_v);
+    public void set_velocity(double v){
+        main_left.setVelocity(v);
+        main_right.setVelocity(v);
     }
     public double distance_calc(Pose pose, boolean redside){
         x = pose.getX();
@@ -97,26 +93,34 @@ public class Shooter {
         return distance;
     }
 
-    public void shootSequence(){
-        gateTimer.reset();
-        gate_open();
-        if(gateTimer.seconds() > 0.5){
+    public void startShootSequence(){          // call once
+        if (shootState == ShootState.IDLE) {
+            gate_open();
             shootTimer.reset();
-            if(shootTimer.seconds() < 1.25){ //put in or/and for sensors once work reliable
-                intake.shoot();
-            }
-            else{
-                intake.off();
-                gate_close();
-            }
+            shootState = ShootState.GATE_OPENING;
+        }
+    }
+    public void updateShootSequence(){         // call every loop
+        switch (shootState) {
+            case GATE_OPENING:
+                if (shootTimer.seconds() > 0.5) {
+                    intake.shoot();
+                    shootTimer.reset();
+                    shootState = ShootState.FEEDING;
+                }
+                break;
+            case FEEDING:
+                if (shootTimer.seconds() > 1.25) {
+                    intake.off();
+                    gate_close();
+                    shootState = ShootState.IDLE;
+                }
+                break;
         }
     }
 
-    public double getMainVelocity(){
-        return main.getVelocity();
-    }
-    public double getCounterVelocity(){
-        return counter.getVelocity();
+    public double getVelocity(){
+        return main_left.getVelocity();
     }
     public double getGatePose(){
         return gate.getPosition();
@@ -124,19 +128,19 @@ public class Shooter {
 
     public void gate_open(){
         gate.setPosition(GATE_OPEN);
-        gateLight();
+        //gateLight();
     }
     public void gate_close(){
         gate.setPosition(GATE_CLOSE);
-        gateLight();
+        //gateLight();
     }
 
     public void gateLight(){
         if(getGatePose() == 1){
-            sensors.set_light(0.44);
+            //sensors.set_light(0.44);
         }
         else if(getGatePose() == 0){
-            sensors.set_light(0.33);
+            //sensors.set_light(0.33);
         }
     }
 }

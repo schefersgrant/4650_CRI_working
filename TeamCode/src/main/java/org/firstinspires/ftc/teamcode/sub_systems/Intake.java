@@ -9,7 +9,7 @@ public class Intake {
 
     public final DcMotor intake;
     public Intake(HardwareMap hardwareMap){
-        intake = hardwareMap.get(DcMotor.class, "c3");
+        intake = hardwareMap.get(DcMotor.class, "e3");
         intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         intake.setZeroPowerBehavior(BRAKE);
     }

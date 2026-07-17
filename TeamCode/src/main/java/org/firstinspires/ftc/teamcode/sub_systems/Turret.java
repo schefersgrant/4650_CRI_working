@@ -17,8 +17,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 @Configurable
 public class Turret {
     private double error = 0, power = 0, manualPower = 0;
-    private final double DISABLE_ANGLE = Math.toRadians(135);
-    public static double rpt = (2*Math.PI)/1350;
+    private final double DISABLE_ANGLE = Math.toRadians(180);
+    public static double rpt = (2*Math.PI)/1775;
 
     public final DcMotorEx m;
     private PIDFController p, s; // pidf controller for turret
@@ -29,7 +29,7 @@ public class Turret {
     public static boolean on = true, manual = false;
 
     public Turret(HardwareMap hardwareMap) {
-        m = hardwareMap.get(DcMotorEx.class, "c0");
+        m = hardwareMap.get(DcMotorEx.class, "e2");
         m.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         m.setDirection(DcMotorSimple.Direction.REVERSE);
         m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
