@@ -29,7 +29,6 @@ import org.firstinspires.ftc.teamcode.sub_systems.Sensors;
 import org.firstinspires.ftc.teamcode.sub_systems.Shooter;
 import org.firstinspires.ftc.teamcode.sub_systems.Turret;
 import com.seattlesolvers.solverslib.util.TelemetryData;
-import org.firstinspires.ftc.teamcode.util.NetTelemetry;
 import java.util.List;
 
 @TeleOp(name = "TeleOP", group = "Robot")
@@ -46,7 +45,6 @@ public class TeleOP extends OpMode{
     private Drivetrain drivetrain;
     TelemetryData telemetryData;
     private TelemetryManager panelsTelemetry;
-    NetTelemetry net;
     private boolean redSide, LLPoseSet = false, LLPoseFirstSet = false, manual;
     private double v_MAIN, v_COUNTER, angleToTarget = 0, distance, yawOffset;
     ElapsedTime LLPoseTimer = new ElapsedTime(), YawOffsetDelay = new ElapsedTime();
@@ -68,7 +66,6 @@ public class TeleOP extends OpMode{
         //Telemetry setup
         telemetryData = new TelemetryData(telemetry);
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
-        net = NetTelemetry.init(telemetry).logToFile("TeleOP");
 
         //Subsystem setup
         turret = new Turret(hardwareMap);
@@ -111,8 +108,6 @@ public class TeleOP extends OpMode{
         //Display board
         //sensors.artBoard(sensors.getVoltage());
         //telemetry.addData("Voltage: ", sensors.getVoltage());
-        net.addData("Side", "RED");        // DS screen + laptop
-        net.logGamepads(gamepad1, gamepad2);
 
         //Velocity calculations
         //v_MAIN = shooter.velocity_calc_MAIN(follower.getPose(), redSide);
@@ -256,10 +251,10 @@ public class TeleOP extends OpMode{
             yawOffset = 0;
         }
 
-        net.update();
+
     }
     @Override
     public void stop(){
-        net.close();
+
     }
 }
